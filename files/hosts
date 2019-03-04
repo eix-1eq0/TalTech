@@ -1,0 +1,10 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+10.10.100.254 hpc2-login01 hpc2-login01.taltech
+10.10.100.1 hpc2node1
+10.10.100.3 hpc2node3
+10.10.100.4 hpc2node4
+10.10.100.5 hpc2node5
+10.10.100.6 hpc2node6
+10.10.100.7 hpc2node7
+

@@ -1,0 +1,12 @@
+---
+
+all:
+  hosts:
+
+  children:
+    test:
+      hosts:
+        hpc2node1:
+        hpc2node3:
+        hpc2node6:
+        hpc2node7:

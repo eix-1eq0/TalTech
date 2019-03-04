@@ -1,0 +1,253 @@
+---
+- hosts: test
+
+  tasks:
+  - name: Sync users
+    copy:
+      src: /etc/passwd
+      dest: /etc/passwd
+    tags:
+      - syncusers
+
+  - name: Sync groups
+    copy:
+      src: /etc/group
+      dest: /etc/group
+    tags:
+      - syncusers
+
+  - name: Sync hosts
+    copy:
+      src: hosts
+      dest: /etc/hosts
+    tags:
+      - synchosts
+
+  - name: Scratch space /state/partition1
+    file:
+      path: /state/partition1
+      state: directory
+      mode: 0777
+
+  - name: Unmount and remove /home from fstab (home partition will become scratch /state/partition1)
+    mount:
+      path: /home
+      state: absent
+    tags: 
+      - localhome
+
+  - name: Insert scratch partition to fstab and mount
+    mount:
+      path: /state/partition1
+      src: /dev/mapper/centos-home
+      fstype: xfs
+      state: present
+
+#  - name: Debug message
+#    debug:
+#      msg: "{{ '/dev/mapper/centos_' + ansible_facts['nodename'] + '-home' }}"
+#      msg: /dev/mapper/centos_{{ ansible_facts['nodename'] }}-home
+#    tags:
+#      - debug
+
+  - name: Ensure scratch accessability for all users
+    file:
+      dest: /state/partition1
+      mode: 0777
+#      recurse: yes
+
+  - name: Install nfs-tools
+    yum:
+      name: nfs-utils
+      state: present
+    tags:
+      - nfsmount
+
+  - name: Mount home from nfs
+    mount:
+      path: /home
+      src: 10.10.100.254:/home
+      fstype: nfs
+      opts: "defaults,noatime,_netdev"
+      state: mounted
+
+  - name: Mountpoint for msi nfs share
+    file:
+      path: /share/msi
+      state: directory
+      group: msi
+
+  - name: Add msi to fstab and mount
+    mount:
+      path: /share/msi
+      src: 10.10.255.3:/mnt/data
+      fstype: nfs
+      opts: "defaults,noatime,_netdev"
+      state: mounted
+
+  - name: Apps nfs share mountpoint
+    file:
+      path: /share/apps
+      state: directory
+    tags:
+      - nfsmount
+
+  - name: Mount apps nfs share
+    mount:
+      path: /share/apps
+      src: 10.10.1.1:/export/apps
+      fstype: nfs
+      opts: "defaults,noatime,_netdev"
+      state: mounted
+    tags:
+      - nfsmount
+      - slurm
+
+  - name: Install EPEL
+    yum:
+      name: epel-release
+      state: present
+    tags:
+      - envmodules
+      - munge
+
+  - name: Install Environment modules
+    yum:
+      name: environment-modules
+      state: present
+    tags:
+      - envmodules
+
+#Modules /etc/profile.d/modules.{sh,csh}
+#https://docs.ansible.com/ansible/latest/modules/blockinfile_module.html
+  - name: Append module prfiles to /etc/profile.d/modules.sh
+    blockinfile:
+      path: /etc/profile.d/modules.sh
+      block: |
+        #export MODULEPATH=/share/apps/modules:$MODULEPATH
+        if [[ -z `echo $MODULEPATH | grep /share/apps/modules` ]]; then
+          export MODULEPATH=/share/apps/modules:$MODULEPATH
+        fi
+    tags:
+      - envmodules
+
+  - name: Append module prfiles to /etc/profile.d/modules.csh
+    blockinfile:
+      path: /etc/profile.d/modules.csh
+      block: |
+        #setenv MODULEPATH /share/apps/modules:$MODULEPATH
+        if (`echo $MODULEPATH | grep /share/apps/modules` == "" ) then
+         setenv MODULEPATH /share/apps/modules:$MODULEPATH
+        endif
+    tags:
+      - envmodules
+
+  - name: Disable firewalld
+    systemd:
+      name: firewalld
+      state: stopped
+      enabled: no
+
+  - name: Install needed software
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - openmpi
+      - openmpi-devel
+      - libXinerama
+      - hdf5
+      - hdf5-devel
+      - libXt
+
+# Munge
+  - name: Install Munge
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - munge
+      - munge-libs
+      - munge-devel
+    tags:
+      - munge
+
+  - name: Copy munge credentials
+    copy:
+      src: munge.key
+      dest: /etc/munge/munge.key
+      owner: munge
+      group: munge
+      mode: 0400
+    tags:
+      - munge
+
+  - name: Munge log dirctory
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: munge
+      group: munge
+      mode: 0700
+    with_items:
+      - /etc/munge
+      - /var/log/munge
+    tags:
+      - munge
+
+  - name: Enable and start munge service
+    systemd:
+      name: munge
+      state: started
+      enabled: yes
+    tags:
+      - munge
+
+# SLURM
+  - name: Install SLURM
+    yum:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - /share/apps/zvar/slurm/slurm-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-contribs-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-devel-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-example-configs-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-libpmi-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-openlava-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-pam_slurm-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-perlapi-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-slurmctld-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-slurmd-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-slurmdbd-18.08.5-2.el7.x86_64.rpm
+      - /share/apps/zvar/slurm/slurm-torque-18.08.5-2.el7.x86_64.rpm
+    tags:
+      - slurm
+
+  - name: SLURM directories
+    file:
+      path: /var/spool/slurm
+      state: directory
+      owner: slurm
+      group: slurm
+      mode: 0755
+    tags:
+      - slurm
+
+  - name: Copy SLURM conf
+    copy:
+      src: slurm.conf
+      dest: /etc/slurm/slurm.conf
+    tags:
+      - slurm
+      - syncslurm
+
+  - name: Enable and start SLURM client service slurmd
+    systemd:
+      name: slurmd
+      state: started
+      enabled: yes
+    tags:
+      - slurm
+      - syncslurm
