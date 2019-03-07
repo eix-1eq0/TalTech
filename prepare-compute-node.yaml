@@ -16,6 +16,17 @@
     tags:
       - syncusers
 
+  - name: Set correct groups to ssh keys
+    file:
+      src: "{{ item }}"
+      group: ssh_keys
+    with_items:
+      - /etc/ssh/ssh_host_ecdsa_key
+      - /etc/ssh/ssh_host_ed25519_key
+      - /etc/ssh/ssh_host_rsa_key
+    tags:
+      - syncusers
+
   - name: Sync hosts
     copy:
       src: hosts
@@ -33,7 +44,7 @@
     mount:
       path: /home
       state: absent
-    tags: 
+    tags:
       - localhome
 
   - name: Insert scratch partition to fstab and mount
