@@ -40,19 +40,19 @@
       state: directory
       mode: 0777
 
-  - name: Unmount and remove /home from fstab (home partition will become scratch /state/partition1)
-    mount:
-      path: /home
-      state: absent
-    tags:
-      - localhome
+#  - name: Unmount and remove /home from fstab (home partition will become scratch /state/partition1)
+#    mount:
+#      path: /home
+#      state: absent
+#    tags:
+#      - localhome
 
-  - name: Insert scratch partition to fstab and mount
-    mount:
-      path: /state/partition1
-      src: /dev/mapper/centos-home
-      fstype: xfs
-      state: present
+#  - name: Insert scratch partition to fstab and mount
+#    mount:
+#      path: /state/partition1
+#      src: /dev/mapper/centos-home
+#      fstype: xfs
+#      state: present
 
 #  - name: Debug message
 #    debug:
