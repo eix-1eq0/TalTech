@@ -1,5 +1,5 @@
 ---
-- hosts: test
+- hosts: production
 
   tasks:
   - name: Sync users
@@ -81,6 +81,27 @@
       fstype: nfs
       opts: "defaults,noatime,_netdev"
       state: mounted
+    tags:
+      - mount_home
+
+  - name: Mountpoint for CEPH home
+    file:
+      path: /ceph
+      state: directory
+    tags:
+      - ceph
+      - ceph_home
+
+  - name: Add CEPH to fstab
+    mount:
+      path: /ceph
+      src: 172.21.9.201:6789,172.21.9.202:6789,172.21.9.203:6789:/
+      fstype: ceph
+      opts: "name={{cephID}},secretfile=/etc/ceph/client.{{cephID}}.secret,noatime,_netdev"
+      state: mounted
+    tags:
+      - ceph
+      - ceph_home
 
   - name: Mountpoint for msi nfs share
     file:
