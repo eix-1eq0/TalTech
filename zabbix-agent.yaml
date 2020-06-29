@@ -1,0 +1,27 @@
+---
+- hosts: production
+
+  tasks:
+  - name: Install Zabbix agent
+    yum:
+      name: zabbix-agent
+      state: present
+    tags:
+      - zabbix-agent
+
+  - name: Zabbix agent server in conf
+    lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      regexp: '^Server='
+      line: Server=10.10.100.250
+    tags:
+      - zabbix-conf
+
+  - name: Enable and start Zabbix agent service
+    systemd:
+      name: zabbix-agent
+      state: started
+      enabled: yes
+    tags:
+      - zabbix-service
+
