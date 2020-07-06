@@ -283,3 +283,11 @@
     tags:
       - slurm
       - syncslurm
+
+  - name: Restart SLURM client service slurmd
+    systemd:
+      name: slurmd
+      state: restarted
+      enabled: yes
+    tags:
+      - syncslurm
