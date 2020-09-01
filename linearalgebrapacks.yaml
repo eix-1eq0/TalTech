@@ -1,0 +1,32 @@
+---
+- hosts: production
+
+  tasks:
+  - name: Install linear algebra packages
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - lapack
+      - lapack-static
+      - lapack64
+      - lapack64-static
+      - scalapack-common
+      - scalapack-openmpi
+      - scalapack-openmpi-static
+      - blas
+      - blas-static
+      - blas64-static
+      - openblas
+      - openblas-openmp
+      - openblas-openmp64
+      - openblas-serial
+      - openblas-serial64
+      - openblas-static
+      - openblas-threads
+      - openblas-threads64
+      - psblas3-common
+      - psblas3-openmpi
+      - psblas3-serial
+    tags:
+      - linerar-algebra
