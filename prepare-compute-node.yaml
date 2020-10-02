@@ -191,6 +191,10 @@
       - hdf5
       - hdf5-devel
       - libXt
+      - pcre2
+      - java-1.8.0-openjdk
+    tags:
+      - needed-software
 
 # Munge
   - name: Install Munge
